@@ -1,0 +1,57 @@
+﻿  main.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(51,1): warning C4005: “INT32_MIN”: 宏重定义
+E:\学位论文\DMA结果部分\test\metis\header\metis.h(75): message : 参见“INT32_MIN”的前一个定义
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(52,1): warning C4005: “INT64_MIN”: 宏重定义
+E:\学位论文\DMA结果部分\test\metis\header\metis.h(77): message : 参见“INT64_MIN”的前一个定义
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(55,1): warning C4005: “INT32_MAX”: 宏重定义
+E:\学位论文\DMA结果部分\test\metis\header\metis.h(76): message : 参见“INT32_MAX”的前一个定义
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(56,1): warning C4005: “INT64_MAX”: 宏重定义
+E:\学位论文\DMA结果部分\test\metis\header\metis.h(78): message : 参见“INT64_MAX”的前一个定义
+E:\学位论文\DMA结果部分\test\helper.h(211,7): warning C4101: “i”: 未引用的局部变量
+E:\学位论文\DMA结果部分\test\mopso.h(119,2): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+E:\学位论文\DMA结果部分\test\mopso.h(191,37): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+E:\学位论文\DMA结果部分\test\mopso.h(330,39): warning C4267: “+=”: 从“size_t”转换到“int”，可能丢失数据
+E:\学位论文\DMA结果部分\test\mopso.h(341,38): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+E:\学位论文\DMA结果部分\test\mopso.h(418,30): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+E:\学位论文\DMA结果部分\test\main.cpp(113,25): warning C4244: “参数”: 从“double”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=int
+          ]
+E:\学位论文\DMA结果部分\test\main.cpp(162,42): warning C4244: “=”: 从“_Ty”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=double
+          ]
+          and
+          [
+              _Ty=int
+          ]
+E:\学位论文\DMA结果部分\test\main.cpp(163,43): warning C4244: “=”: 从“_Ty”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=double
+          ]
+          and
+          [
+              _Ty=int
+          ]
+E:\学位论文\DMA结果部分\test\main.cpp(202,35): warning C4267: “初始化”: 从“size_t”转换到“idx_t”，可能丢失数据
+E:\学位论文\DMA结果部分\test\main.cpp(203,34): warning C4267: “初始化”: 从“size_t”转换到“idx_t”，可能丢失数据
+E:\学位论文\DMA结果部分\test\main.cpp(204,42): warning C4267: “初始化”: 从“size_t”转换到“idx_t”，可能丢失数据
+E:\学位论文\DMA结果部分\test\main.cpp(372,31): warning C4267: “参数”: 从“size_t”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=int
+          ]
+E:\学位论文\DMA结果部分\test\main.cpp(389,30): warning C4267: “参数”: 从“size_t”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=int
+          ]
+  正在生成代码
+  1 of 2290 functions (<0.1%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    3 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  test.vcxproj -> E:\学位论文\DMA结果部分\test\x64\Release\test.exe

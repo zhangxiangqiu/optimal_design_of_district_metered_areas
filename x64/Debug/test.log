@@ -1,0 +1,41 @@
+﻿  helper.cpp
+  main.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(51,1): warning C4005: “INT32_MIN”: 宏重定义
+E:\博四下\metis软件使用\test\metis\header\metis.h(75): message : 参见“INT32_MIN”的前一个定义
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(52,1): warning C4005: “INT64_MIN”: 宏重定义
+E:\博四下\metis软件使用\test\metis\header\metis.h(77): message : 参见“INT64_MIN”的前一个定义
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(55,1): warning C4005: “INT32_MAX”: 宏重定义
+E:\博四下\metis软件使用\test\metis\header\metis.h(76): message : 参见“INT32_MAX”的前一个定义
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdint.h(56,1): warning C4005: “INT64_MAX”: 宏重定义
+E:\博四下\metis软件使用\test\metis\header\metis.h(78): message : 参见“INT64_MAX”的前一个定义
+E:\博四下\metis软件使用\test\helper.h(198,7): warning C4101: “i”: 未引用的局部变量
+E:\博四下\metis软件使用\test\mopso.h(147,37): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+E:\博四下\metis软件使用\test\mopso.h(268,39): warning C4267: “+=”: 从“size_t”转换到“int”，可能丢失数据
+E:\博四下\metis软件使用\test\mopso.h(279,38): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+E:\博四下\metis软件使用\test\mopso.h(356,30): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+E:\博四下\metis软件使用\test\main.cpp(103,25): warning C4244: “参数”: 从“double”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=int
+          ]
+E:\博四下\metis软件使用\test\main.cpp(191,35): warning C4267: “初始化”: 从“size_t”转换到“idx_t”，可能丢失数据
+E:\博四下\metis软件使用\test\main.cpp(192,34): warning C4267: “初始化”: 从“size_t”转换到“idx_t”，可能丢失数据
+E:\博四下\metis软件使用\test\main.cpp(193,42): warning C4267: “初始化”: 从“size_t”转换到“idx_t”，可能丢失数据
+E:\博四下\metis软件使用\test\main.cpp(297,19): warning C4838: 从“_Ty”转换到“double”需要收缩转换
+          with
+          [
+              _Ty=int
+          ]
+E:\博四下\metis软件使用\test\main.cpp(363,31): warning C4267: “参数”: 从“size_t”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=int
+          ]
+E:\博四下\metis软件使用\test\main.cpp(380,30): warning C4267: “参数”: 从“size_t”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=int
+          ]
+  正在生成代码...
+LINK : warning LNK4098: 默认库“MSVCRT”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
+  test.vcxproj -> E:\博四下\metis软件使用\test\x64\Debug\test.exe
