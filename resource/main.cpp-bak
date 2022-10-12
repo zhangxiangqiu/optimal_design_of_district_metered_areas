@@ -1,0 +1,540 @@
+#include "metis.h"
+#include "epanet2_2.h"
+#include "json.hpp"
+#include <vector>
+#include <map>
+#include <set>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <math.h>
+#include <numeric>
+#include "mopso.h"
+
+#define SIGNAL_NUM -1000
+
+using namespace std;
+
+struct Link
+{
+	int index;
+	int node1;
+	int node2;
+	double length;
+};
+vector<idx_t> part;
+vector<Link> allLinks;
+map<int, vector<Link>> nodeLinksMap;
+vector<double> nodeBaseDemand(0);
+vector<double> nodeTotalLength;
+
+bool judge(const pair<int, char> a, const pair<int, char> b) {
+	return a.first < b.first;
+}
+
+// 从inp文件读取无向图并保存到graph.txt
+void genGraphFromInpFile(string filename) {
+	// 从inp文件创建工程
+	EN_Project ph;
+	int errcode;
+	EN_createproject(&ph);
+	errcode = EN_open(ph, (char*)filename.c_str(), "resource/report.rpt", "");
+	if (errcode != 0)
+	{
+		// Call functions that perform desired analysis
+		cout << "open inp file err, code =" << errcode << endl;
+	}
+
+	// 从inp文件读取count，并输出到控制台
+	EN_getcount(ph, EN_NODECOUNT, &nodeCount);
+	EN_getcount(ph, EN_TANKCOUNT, &tankCount);
+	EN_getcount(ph, EN_LINKCOUNT, &linkCount);
+	EN_getcount(ph, EN_PATCOUNT, &patCount);
+	EN_getcount(ph, EN_CURVECOUNT, &curveCount);
+	EN_getcount(ph, EN_CONTROLCOUNT, &controlCount);
+	EN_getcount(ph, EN_RULECOUNT, &ruleCount);
+	cout << "node count = " << nodeCount << endl;
+	cout << "tank count = " << tankCount << endl;
+	cout << "link count = " << linkCount << endl;
+	cout << "pat count = " << patCount << endl;
+	cout << "curve count = " << curveCount << endl;
+	cout << "control count = " << controlCount << endl;
+	cout << "rule count = " << ruleCount << endl << endl;
+
+	int nodeWeightNum = 2, edgeWeightNum = 0;
+	set<int> nodes;
+	vector<pair<int, int>> links(0);
+	vector<int> edgeWeights(0);
+	vector<int> nodeWeights(nodeCount * nodeWeightNum);
+	nodeTotalLength = vector<double>(nodeCount);
+	int minNode = 100000, maxNode = -1;
+	for (int i = 1; i <= nodeCount; i++) {
+		char id[50];
+		EN_getnodeid(ph, i, id);
+		if (i == 107) {
+			cout << "index: 107 ==========> id: " << id << endl;
+		}
+		if (i == 247) {
+			cout << "index: 247 ==========> id: " << id << endl;
+		}
+		nodeIndexToID[i] = id;
+		double baseDemand;
+		EN_getnodevalue(ph, i, EN_BASEDEMAND, &baseDemand);
+		nodeBaseDemand.push_back(baseDemand);
+	}
+	for (int i = 1; i <= linkCount; i++) {
+		int start, end;
+		EN_getlinknodes(ph, i, &start, &end);
+		char id[50];
+		EN_getlinkid(ph, i, id);
+		if (start == 107 && end == 247) {
+			cout << "index: " << i << " ==========> id: " << id << endl;
+		}
+		if (start > maxNode) {
+			maxNode = start;
+		}
+		if (end > maxNode) {
+			maxNode = start;
+		}
+		if (start < minNode) {
+			minNode = start;
+		}
+		if (end < minNode) {
+			minNode = start;
+		}
+		//cout << "link" << i << ": start=" << start << ", end=" << end << endl;
+		links.push_back(make_pair(start, end));
+		double length, diameter;
+		EN_getlinkvalue(ph, i, EN_LENGTH, &length);
+		EN_getlinkvalue(ph, i, EN_DIAMETER, &diameter);
+		edgeWeights.push_back(diameter);
+		nodeTotalLength[start] += length;
+		nodes.insert(start);
+		nodes.insert(end);
+		Link link = {
+			i,
+			start,
+			end,
+			length
+		};
+		allLinks.push_back(link);
+		/*char linkID[100];
+		EN_getlinkid(ph, i, linkID);*/
+		//cout << i << " " << linkID << endl;
+	}
+	// 关掉工程
+	EN_deleteproject(ph);
+
+	cout << "maxNode=" << maxNode << ", minNode=" << minNode << endl;
+
+	int index = 0;
+	for (int i = 0; i < nodeCount; i++) {
+		double pattern;
+		if (i < 90) {
+			pattern = 1.2;
+		} else if (i < 180) {
+			pattern = 1.1;
+		} else {
+			pattern = 1.2;
+		}
+		nodeWeights[index++] = nodeBaseDemand[i] * pattern;
+		nodeWeights[index++] = nodeTotalLength[i];
+	}
+
+	for (int i = 0; i < allLinks.size(); i++) {
+		nodeLinksMap[allLinks[i].node1].push_back(allLinks[i]);
+		nodeLinksMap[allLinks[i].node2].push_back(allLinks[i]);
+	}
+
+	//for (set<int>::iterator iter = nodes.begin(); iter != nodes.end(); ++iter) {
+	//	cout << "node	" << *iter << endl;
+	//}
+	//cout << endl;
+	//for (int i = 0; i < links.size(); ++i) {
+	//	cout << "link	" << links[i].first << "	" << links[i].second << endl;
+	//}
+	//cout << endl;
+	//cout << "allLinks" << endl;
+	//for (int i = 0; i < allLinks.size(); ++i) {
+	//	cout << "start=" << allLinks[i].node1 << ", end=" << allLinks[i].node2 << ", length=" << allLinks[i].length << endl;
+	//}
+	//int count = 0;
+	//for (int i = 0; i < allLinks.size(); ++i) {
+	//	for (int j = 0; j < allLinks.size(); ++j) {
+	//		if (allLinks[i].node1 == allLinks[j].node2 && allLinks[i].node2 == allLinks[j].node1) {
+	//			cout << "----------------------" << allLinks[i].node1 << allLinks[i].node2 << allLinks[i].length << endl;
+	//			count++;
+	//		}
+	//	}
+	//}
+	//cout << "count=" << count << endl;
+
+	// 写入graph.txt
+	ofstream outgraph("resource/graph.txt");
+	if (!outgraph) {
+		cout << "打开文件失败3！" << endl;
+		exit(1);
+	}
+	sort(links.begin(), links.end(), judge);
+	outgraph << nodes.size() << " " << links.size() << " " << nodeWeightNum << " " << edgeWeightNum << endl;
+	for (int i = 0; i < nodes.size(); i++) {
+		for (int j = 0; j <= links.size(); j++) {
+			int first = links[j].first - 1;
+			int second = links[j].second - 1;
+			if (first == i) {
+				outgraph << second << " " << edgeWeights[j] << " ";
+			}
+			else if (second == i) {
+				outgraph << first << " " << edgeWeights[j] << " ";
+			}
+		}
+		outgraph << SIGNAL_NUM;
+		for (int j = 0; j < nodeWeightNum; j++) {
+			outgraph << " " << nodeWeights[i * nodeWeightNum + j];
+		}
+		if (i != nodes.size() - 1) {
+			outgraph << endl;
+		}
+	}
+	outgraph.close();
+}
+
+vector<idx_t> splitGraph(vector<idx_t> xadj, vector<idx_t> adjncy, vector<idx_t> adjwgt, vector<idx_t> vwgt, int n_Parts, bool useKWay, bool useEdgeWeight) {
+	idx_t nVertices = xadj.size() - 1; // 节点数
+	idx_t nEdges = adjncy.size() / 2;    // 边数
+	idx_t nWeights = vwgt.size() / nVertices;	//权重数量
+	idx_t nParts = n_Parts;    // 子图个数
+	idx_t objval;
+	std::vector<idx_t> part(nVertices, 0);
+
+	idx_t options[METIS_NOPTIONS];
+	METIS_SetDefaultOptions(options);
+	options[METIS_OPTION_UFACTOR] = 120;
+	//options[METIS_OPTION_NSEPS] = 10;
+	//options[METIS_OPTION_UFACTOR] = 100;
+	//options[METIS_OPTION_PTYPE] = METIS_PTYPE_RB;
+	//options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_VOL;
+
+	cout << "nWeights=" << nWeights << endl;
+
+	idx_t* adjwgtData = adjwgt.data();
+	if (!useEdgeWeight) {
+		adjwgtData = NULL;
+	}
+
+	int ret = 0;
+	if (useKWay) {
+		ret = METIS_PartGraphKway(&nVertices, &nWeights, xadj.data(), adjncy.data(), vwgt.data(), NULL, adjwgtData, &nParts, NULL, NULL, options, &objval, part.data());
+	}
+	else {
+		ret = METIS_PartGraphRecursive(&nVertices, &nWeights, xadj.data(), adjncy.data(), vwgt.data(), NULL, adjwgtData, &nParts, NULL, NULL, options, &objval, part.data());
+	}
+	if (ret == METIS_OK) {
+		cout << "graph split success, code=" << ret << endl << endl;
+	}
+	else {
+		cout << "graph split fail, code=" << ret << endl << endl;
+	}
+	cout << "graph split objval " << objval << endl;
+
+	//for (unsigned part_i = 0; part_i < part.size(); part_i++) {
+	//	cout << part_i + 1 << " " << part[part_i] << endl;
+	//}
+	return part;
+}
+
+void genNewInpFromResult(string filename) {
+	// 从inp文件创建工程
+	EN_Project ph;
+	int errcode;
+	EN_createproject(&ph);
+	errcode = EN_open(ph, (char*)filename.c_str(), "resource/report.rpt", "");
+	if (errcode != 0)
+	{
+		// Call functions that perform desired analysis
+		cout << "open inp file err, code =" << errcode << endl;
+	}
+	for (int i = 1; i <= nodeCount; i++) {
+		EN_setnodevalue(ph, i, EN_ELEVATION, (part[i-1] * 25 + 10));
+	}
+	string s = "resource/inp/Modena111.inp";
+	EN_saveinpfile(ph, (char*)s.c_str());
+	// 关掉工程
+	EN_deleteproject(ph);
+}
+
+void generateObjectiveFile(string filename) {
+	ofstream outobjective(filename);
+	if (!outobjective) {
+		cout << "打开文件失败3！" << endl;
+		exit(1);
+	}
+	vector<double> baseDemandVal(nParts);
+	vector<double> lengthVal(nParts);
+	for (int i = 0; i < part.size(); i++) {
+		double pattern;
+		if (i < 90) {
+			pattern = 1.2;
+		}
+		else if (i < 180) {
+			pattern = 1.1;
+		}
+		else {
+			pattern = 1.2;
+		}
+		baseDemandVal[part[i]] += nodeBaseDemand[i] * pattern;
+		lengthVal[part[i]] += nodeTotalLength[i];
+	}
+	for (int i = 0; i < nParts; i++) {
+		outobjective << i;
+		outobjective << "," << baseDemandVal[i];
+		outobjective << "," << lengthVal[i] << endl;
+	}
+	outobjective.close();
+}
+
+void run_Split() {
+	// 从文件读取配置
+	std::ifstream fin("resource/config.json");   // 注意此处是相对路径
+	nlohmann::json j;
+	fin >> j;
+	fin.close();
+	string filename = j["inpFile"];
+	bool useKWay = j["useKWay"];
+	string cutEdgeFile = j["cutEdgeFile"];
+	string partitionFile = j["partitionFile"];
+	nParts = j["nParts"];
+
+	// 根据inp文件生成graph.txt
+	genGraphFromInpFile(filename);
+
+	// 读取graph.txt
+	ifstream ingraph("resource/graph.txt");
+	if (!ingraph) {
+		cout << "打开文件失败！" << endl;
+		exit(1);//失败退回操作系统    
+	}
+
+	// 解析graph.txt，构造内存的图结构和权重的metis分图参数
+	int vexnum, edgenum, vexWeightNum, edgeWeightFlag;
+	string line;
+	getline(ingraph, line);
+	istringstream tmp(line);
+	tmp >> vexnum >> edgenum >> vexWeightNum >> edgeWeightFlag;
+	vector<idx_t> xadj(0);
+	vector<idx_t> adjncy(0); //点的id从0开始
+	vector<idx_t> adjwgt(0); //边权
+	vector<idx_t> vwgt(0);	//点权
+
+	int count = 0;
+	idx_t aa, ww;
+	for (int i = 0; i < vexnum; i++) {
+		xadj.push_back(adjncy.size());
+		getline(ingraph, line);
+		istringstream tmp(line);
+		if (i == vexnum - 1) {
+			cout << endl;
+		}
+		while (tmp >> aa >> ww) {
+			if (aa == SIGNAL_NUM) {
+				vwgt.push_back(ww);
+				for (int j = 1; j < vexWeightNum; j++) {
+					tmp >> ww;
+					vwgt.push_back(ww);
+				}
+			}
+			else {
+				adjncy.push_back(aa);
+				count++;
+				adjwgt.push_back(ww);
+			}
+		}
+	}
+	xadj.push_back(adjncy.size());
+	ingraph.close();
+	cout << "count=" << count << endl;
+
+	bool useEdgeWeight = true;
+	if (edgeWeightFlag == 0) {
+		useEdgeWeight = false;
+	}
+
+	if (edgenum * 2 != adjncy.size()) {
+		cout << endl << endl << "adjcny=" << adjncy.size() << "，edgenum*2=" << edgenum * 2 << endl << endl;
+	}
+	if (vexnum + 1 != xadj.size()) {
+		cout << endl << endl << "xadj=" << xadj.size() << "，vexnum=" << vexnum << endl << endl;
+	}
+
+	// 分图，获取分图结果
+	part = splitGraph(xadj, adjncy, adjwgt, vwgt, nParts, useKWay, useEdgeWeight);
+
+	// 将分图结果写入partition.txt，并根据分图结果计算每个分区的objective
+	ofstream outpartition(partitionFile);
+	if (!outpartition) {
+		cout << "打开文件失败2！" << endl;
+		exit(1);
+	}
+	ofstream outobjective("resource/objective.txt");
+	if (!outobjective) {
+		cout << "打开文件失败3！" << endl;
+		exit(1);
+	}
+	vector<int> objVal(nParts);
+	outpartition << part.size() << endl;
+	for (int i = 0; i < part.size(); i++) {
+		outpartition << i + 1 << " " << part[i] << endl;
+		objVal[part[i]] += vwgt[i];
+		//cout << nodeIndexToID[i + 1] << " " << part[i] << endl;
+	}
+	for (int i = 0; i < objVal.size(); i++) {
+		outobjective << i << " " << objVal[i] << endl;
+	}
+	outpartition.close();
+	outobjective.close();
+
+
+	generateObjectiveFile("resource/objective.csv");
+	// 根据分图结果对不同分区设置不同的高程，方便在epanet中查看分区结果
+	genNewInpFromResult(filename);
+}
+
+void run_Mopso() {
+	srand((unsigned)time(NULL));
+
+	Multi_Object_Particle_Swarm_Optimization mospo;
+	mospo.MOPSO();
+}
+
+void testEpanet() {
+	string inpFile = "resource/inp/Modena.inp"; // 可以修改inp
+	vector<double> initPressures;
+	vector<double> newPressures;
+	/*ofstream output("resource/test.txt");
+	if (!output) {
+		cout << "打开文件失败2！" << endl;
+		exit(1);
+	}*/
+	for (int i = 0; i < 0; i++) {
+		EN_Project ph;
+		int errcode;
+		EN_createproject(&ph);
+		errcode = EN_open(ph, (char*)inpFile.c_str(), "resource/report.rpt", "");
+		if (errcode != 0)
+		{
+			// Call functions that perform desired analysis
+			cout << "open inp file err, code =" << errcode << endl;
+		}
+		EN_getcount(ph, EN_NODECOUNT, &nodeCount);
+		EN_getcount(ph, EN_LINKCOUNT, &linkCount);
+		cout << "count1 = " << linkCount;
+		//for (int i = 0; i < linkCount; i++) {
+		//	double value;
+		//	EN_getlinkvalue(ph, i, EN_INITSTATUS, &value);
+		//	cout << value << endl;
+		//}
+		for (int i = nodeCount; i >= nodeCount - 5; i--) {
+			char value[50];
+			EN_getnodeid(ph, i, value);
+			cout << value << endl;
+		}
+		long t = 0;
+		EN_openH(ph);
+		// initialize hydraulics; don't save them to file
+		EN_initH(ph, EN_NOSAVE);
+		// solve hydraulics
+		EN_runH(ph, &t);
+		// user-supplied function to process results
+		for (int i = nodeCount; i >= nodeCount - 5; i--) {
+			double value;
+			EN_getnodevalue(ph, i, EN_PRESSURE, &value);
+			cout << setiosflags(ios::fixed) << setprecision(6) << value << endl;
+		}
+		//output << endl << endl;
+		//double flow;
+		//EN_getlinkvalue(ph, 151, EN_FLOW, &flow);
+		//cout << flow << endl;
+		EN_closeH(ph);
+		// 关掉工程
+		EN_deleteproject(ph);
+	}
+
+	//vector<int> solution = { 113,151,83,196,165,191,193,262 };
+	//vector<string> solution1 = { "125","148","154","199","256","261" };
+	//vector<string> solution1 = { "33","4","243","27","271","212", "254", "191", "156", "206", "58", "116", "148", "179", "165", "84" };
+	vector<string> solution1 = { "179" };
+	EN_createproject(&ph);
+	int errcode = EN_open(ph, (char*)inpFile.c_str(), "resource/report.rpt", "");
+	if (errcode != 0)
+	{
+		// Call functions that perform desired analysis
+		cout << "open inp file err, code =" << errcode << endl;
+	}
+	EN_getcount(ph, EN_LINKCOUNT, &linkCount);
+	vector<int> solution;
+	for (int i = 0; i < solution1.size(); i++) {
+		int index;
+		EN_getnodeindex(ph, (char*)solution1[i].c_str(), &index);
+		solution.push_back(index);
+	}
+	long t = 0;
+	EN_openH(ph);
+
+	// user-supplied function to set parameters
+	for (int i = 0; i < solution.size(); i++) {
+		// 将管段solution[i]设置为阀门
+		EN_setlinkvalue(ph, solution[i], EN_INITSTATUS, EN_CLOSED);
+	}
+	for (int i = 1; i <= linkCount; i++) {
+		double value;
+		EN_getlinkvalue(ph, i, EN_INITSTATUS, &value);
+		cout << value << ",";
+	}
+	cout << endl;
+	for (int i = 0; i < solution.size(); i++) {
+		cout << solution[i] << ",";
+	}
+	cout << endl;
+	// initialize hydraulics; don't save them to file
+	EN_initH(ph, EN_NOSAVE);
+	
+	// solve hydraulics
+	errcode = EN_runH(ph, &t);
+	if (errcode != 0) {
+		cout << "EN_runH err, code=" << errcode << endl;
+	}
+	// user-supplied function to process results
+	for (int i = 1; i <= nodeCount; i++) {
+		double value;
+		EN_getnodevalue(ph, i, EN_PRESSURE, &value);
+		newPressures.push_back(value);
+	}
+	double flow;
+	EN_getlinkvalue(ph, 151, EN_FLOW, &flow);
+	cout << flow << endl;
+	EN_closeH(ph);
+	// 关掉工程
+	EN_deleteproject(ph);
+
+/*	ofstream output("resource/test.txt");
+	if (!output) {
+		cout << "打开文件失败2！" << endl;
+		exit(1);
+	}
+	for (int i = 0; i < initPressures.size(); i++) {
+		output << setiosflags(ios::fixed) << setprecision(12) << initPressures[i];
+		output << " ";
+		output << setiosflags(ios::fixed) << setprecision(12) << newPressures[i];
+		output << endl;
+	}
+	output.close();  */                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+}
+
+int main() {
+	_setmaxstdio(8096);
+	run_Split();
+	//run_Mopso();
+	//testEpanet();
+}
+//跑的过程中可能会有负压，但是不需要管，结果会自动舍弃负压的解

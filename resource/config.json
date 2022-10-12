@@ -1,0 +1,11 @@
+{
+  "inpFile": "resource/inp/c-town_true_network0413.inp",
+  "cutEdgeFile": "resource/cut_edge.txt",
+  "partitionFile": "resource/partition.txt",
+  "nParts": 4,
+  "useKWay": true,
+  "skipPipeIDs": [ "T3", " T1", " T7", " T6", " T5", " T2", " T4", " R1" ],
+  "initSolution": [
+
+  ]
+}
